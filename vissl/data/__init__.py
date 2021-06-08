@@ -26,6 +26,7 @@ from vissl.data.disk_dataset import DiskImageDataset
 from vissl.data.ssl_dataset import GenericSSLDataset
 from vissl.data.synthetic_dataset import SyntheticImageDataset
 from vissl.data.torchvision_dataset import TorchvisionDataset
+from vissl.data.kwcoco_dataset import KWCocoDataset
 from vissl.utils.misc import set_dataloader_seeds, setup_multiprocessing_method
 
 
@@ -35,6 +36,7 @@ __all__ = [
     "get_data_files",
     "register_datasets",
     "VisslDatasetCatalog",
+    "KWCocoDataset",
 ]
 
 DATASET_SOURCE_MAP = {
@@ -43,6 +45,7 @@ DATASET_SOURCE_MAP = {
     "disk_folder": DiskImageDataset,
     "torchvision_dataset": TorchvisionDataset,
     "synthetic": SyntheticImageDataset,
+    "kwcoco": KWCocoDataset,
 }
 
 
