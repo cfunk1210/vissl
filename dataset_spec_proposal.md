@@ -120,7 +120,7 @@ my_train_bundle
 
 And the data manifest file (`my_train_bundle/data.kwcoco.json`) looks like this (truncated for clarity):
 
-```
+```json
 {
 "categories": [
     {"id": 0, "name": "background"},
@@ -221,7 +221,7 @@ pointing a command line tool at the dataset. Thus the onus is no longer to
 "VISSL supports datasets that conform to this standardized structure".
 
 I'm wondering what thoughts on this proposal are, and what challenges I might
-be overlooking.
+be overlooking. 
 
 
 
