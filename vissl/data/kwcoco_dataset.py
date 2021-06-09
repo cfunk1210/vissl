@@ -3,7 +3,9 @@ import logging
 # from vissl.data.vissl_dataset_base import VisslDatasetBase
 from fvcore.common.file_io import PathManager  # TODO iopath
 from PIL import Image
-from vissl.data.data_helper import QueueDataset, get_mean_image
+from vissl.data.data_helper import get_mean_image
+from vissl.data.data_helper import QueueDataset
+from torch.utils.data import Dataset
 
 
 def demo_cfg():
@@ -17,7 +19,7 @@ def demo_cfg():
     return cfg
 
 
-class KWCocoDataset(QueueDataset):
+class KWCocoDataset(Dataset):
     """
     Example:
         cfg = demo_cfg()
@@ -30,6 +32,11 @@ class KWCocoDataset(QueueDataset):
     """
     def __init__(self, cfg, data_source, path, split, dataset_name):
         import kwcoco
+        print('CREATE KWCOCO DATASET')
+        print('path = {!r}'.format(path))
+        print('dataset_name = {!r}'.format(dataset_name))
+        print('split = {!r}'.format(split))
+        print('data_source = {!r}'.format(data_source))
         self.cfg = cfg
         self.split = split
         self.dataset_name = dataset_name
@@ -45,9 +52,10 @@ class KWCocoDataset(QueueDataset):
 
         # Load a list of all images
         self.image_ids = list(self.dset.index.imgs.keys())
+        print('self.image_ids = {!r}'.format(self.image_ids))
 
         # whether to use QueueDataset class to handle invalid images or not
-        self.enable_queue_dataset = cfg["DATA"][self.split]["ENABLE_QUEUE_DATASET"]
+        # self.enable_queue_dataset = cfg["DATA"][self.split]["ENABLE_QUEUE_DATASET"]
 
     def __len__(self):
         """
@@ -64,31 +72,37 @@ class KWCocoDataset(QueueDataset):
             index = 0
             img, is_success = self[index]
         """
+        print(len(self))
+        print('GETITEM: index = {!r}'.format(index))
         gid = self.image_ids[index]
         image_path = self.dset.get_image_fpath(gid)
 
         is_success = True
 
-        try:
-            with PathManager.open(image_path, "rb") as fopen:
-                img = Image.open(fopen).convert("RGB")
+        with PathManager.open(image_path, "rb") as fopen:
+            img = Image.open(fopen).convert("RGB")
 
-            if is_success and self.enable_queue_dataset:
-                self.on_sucess(img)
-        except Exception as e:
-            logging.warning(
-                f"Couldn't load: {image_path}. Exception: \n{e}"
-            )
-            is_success = False
-            # if we have queue dataset class enabled, we try to use it to get
-            # the seen valid images
-            if self.enable_queue_dataset:
-                img, is_success = self.on_failure()
-                if img is None:
-                    img = get_mean_image(
-                        self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE
-                    )
-            else:
-                img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
+        if 0:
+            try:
+                with PathManager.open(image_path, "rb") as fopen:
+                    img = Image.open(fopen).convert("RGB")
+
+                if is_success and self.enable_queue_dataset:
+                    self.on_sucess(img)
+            except Exception as e:
+                logging.warning(
+                    f"Couldn't load: {image_path}. Exception: \n{e}"
+                )
+                is_success = False
+                # if we have queue dataset class enabled, we try to use it to get
+                # the seen valid images
+                if self.enable_queue_dataset:
+                    img, is_success = self.on_failure()
+                    if img is None:
+                        img = get_mean_image(
+                            self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE
+                        )
+                else:
+                    img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
 
         return img, is_success

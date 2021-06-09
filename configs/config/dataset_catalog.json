@@ -136,7 +136,7 @@
         "val": ["<img_path>", "<lbl_path>"]
     },
     "kwcoco": {
-        "train": ["<img_path>", "<lbl_path>"],
-        "val": ["<img_path>", "<lbl_path>"]
+        "train": ["<manifest_path>", "<unused>"],
+        "val": ["<manifest_path>", "<unused>"]
     }
 }

@@ -28,8 +28,11 @@ which it is concerned. However, it can be more complex, and also contain
 information about annotations within each image, and category labels relevant
 to the dataset.
 
-A data manifest file has several advantages over predefined folder structures. 
-It is self-contained, 
+A data manifest file has several advantages over predefined folder structures
+and npy files.  It is a single file that contains both paths to images and
+labels, instead of having to shuffle around your data, you can write a
+human-readable file that contains exactly what subset of images you want (so
+your train and validation images can live in the same folder).
 
 Given some data manifest file, it should be possible to run SSL without any
 extra preprocessing, registration, or code modification. For example:
@@ -185,11 +188,16 @@ I have to add a line to `dataset_catelog.json` and then give extra information
 like a dataset name and source:
 
 ```bash
-
 python \
     tools/run_distributed_engines.py \
     config=test/integration_test/quick_simclr.yaml \
     config.CHECKPOINT.DIR="./my_toy_training" \
+    config.PROFILING.OUTPUT_FOLDER="./my_toy_training" \
+    config.DATA.TRAIN.DATA_LIMIT=10 \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=4 \
+    config.DATA.TEST.DATA_LIMIT=10 \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA=4 \
+    config.DATA.NUM_DATALOADER_WORKERS=4 \
     config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
     config.DATA.TRAIN.DATA_PATHS=[my_train_bundle/data.kwcoco.json] \
     config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
@@ -210,6 +218,60 @@ of `kwcoco.CocoDataset` itself, it would also be possible to specify a path
 like `special:shapes8`, which kwcoco coerce interprets as a command to generate
 or use previously cached generated toy data. This would be an extension of the
 currently existing "synthetic" argument in use by vissl.
+
+Also note, I'm aware of memory-leark issues (i.e.
+https://github.com/pytorch/pytorch/issues/13246) and pickle overhead that can
+stem from loading a very large manifest of images into memory as an attribute
+of a dataloader, which is why kwcoco supports a (currently experimental, but
+functional) SQLite view of the underlying dataset. This caches a read-only
+sqlite3 view of the data so when the torch dataset is pickled, only the path to
+the database file is actually copied between processes. A new connection is
+opened in each forked process.
+
+### Required Changes
+
+I think the general idea in this proposal is probably too big for a single
+reviewable PR, and I also think it might require some design forethought.
+
+For basic support of kwcoco, it is clear from the docs as to how I can make a
+kwcoco data source and how this can be registered as a data source.
+
+What is not clear is what the `dataset_catelog.json` is doing here and what
+roll it would play, if any at all. Currently, just to make the simclr example run
+on my data I added in a item:
+
+```
+    "kwcoco": {
+        "train": ["<manifest_path>", "<unused>"],
+        "val": ["<manifest_path>", "<unused>"]
+    }
+```
+
+But I really don't have a good understanding of what this is trying to do. Is
+this registering a specific dataset or a dataset format? The docs seem to
+indicate it is a dataset name, (which seems not extensible if every new dataset
+needs a new entry even if it is in a known format). But the docs I've seen [3]
+aren't very clear on this.
+
+Ultimately, It would be really cool if I could slim down the monster of a command
+I've written up there by 4 lines and write something like: 
+
+```bash
+python \
+    tools/run_distributed_engines.py \
+    config=test/integration_test/quick_simclr.yaml \
+    config.CHECKPOINT.DIR="./my_toy_training" \
+    config.PROFILING.OUTPUT_FOLDER="./my_toy_training" \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=4 \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA=4 \
+    config.DATA.NUM_DATALOADER_WORKERS=4 \
+    config.DATA.TRAIN.DATA_PATHS=[my_train_bundle/data.kwcoco.json] \
+    config.DATA.TEST.DATA_PATHS=[my_test_bundle/data.kwcoco.json] 
+```
+
+where the only dataset lines are simply specifying the paths, and the "source
+type" and "name" are introspected if not specified.
+
 
 ## Summary
 

@@ -17,27 +17,41 @@ cd $HOME/code/vissl
 
 python tools/run_distributed_engines.py --help
 
+See:
+    ~/code/vissl/vissl/config/defaults.yaml
+    ~/code/vissl/configs/config/test/integration_test/quick_simclr.yaml
+    ~/code/vissl/configs/config/dataset_catalog.json
+    ~/code/vissl/vissl/data/kwcoco_dataset.py
 
-kwcoco toydata shapes8
 
-COCO_FPATH=/home/joncrall/.cache/kwcoco/demodata_bundles/shapes_8_tphzxqtzakcghy/data.kwcoco.json
+kwcoco toydata shapes512
+
+COCO_FPATH=/home/joncrall/.cache/kwcoco/demodata_bundles/shapes_512_jsskkpoafycsnj/data.kwcoco.json
 
 python \
     tools/run_distributed_engines.py \
     config=test/integration_test/quick_simclr.yaml \
-    config.DATA.TRAIN.DATASET_NAMES=[kwcoco]
-    config.DATA.TRAIN.DATA_SOURCES=[kwcoco]
-    config.DATA.TRAIN.DATA_PATHS=[$COCO_FPATH]
+    config.CHECKPOINT.DIR="./my_toy_training_v2" \
+    config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
+    config.DATA.TRAIN.DATA_PATHS=[$COCO_FPATH] \
+    config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
+    config.DATA.TEST.DATA_SOURCES=[kwcoco] \
+    config.DATA.TEST.DATA_PATHS=[$COCO_FPATH] \
+    config.DATA.TEST.DATASET_NAMES=[kwcoco] \
+
 
     config.DATA.TRAIN.DATA_SOURCES=[synthetic] \
     config.CHECKPOINT.DIR="./checkpoints"
 
 
+
+python -c "import vissl.data.dataset_catalog"
+
 python run_distributed_engines.py \
     hydra.verbose=true \
     config=quick_1gpu_resnet50_simclr \
     config.DATA.TRAIN.DATA_SOURCES=[synthetic] \
-    config.CHECKPOINT.DIR="./checkpoints" \
+    config.CHECKPOINT.DIR="./synth_checkpoints" \
     config.TENSORBOARD_SETUP.USE_TENSORBOARD=true
 
 """
