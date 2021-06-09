@@ -1,126 +1,94 @@
-from typing import Callable, Dict, Set
+# from typing import Callable, Dict, Set
+import logging
+# from vissl.data.vissl_dataset_base import VisslDatasetBase
+from fvcore.common.file_io import PathManager  # TODO iopath
+from PIL import Image
+from vissl.data.data_helper import QueueDataset, get_mean_image
 
-from vissl.data.vissl_dataset_base import VisslDatasetBase
-from vissl.config import AttrDict
+
+def demo_cfg():
+    import pkg_resources
+    from vissl.config import AttrDict
+    import yaml
+    default_path = pkg_resources.resource_filename('vissl', 'config/defaults.yaml')
+    with open(default_path, 'r') as file:
+        data = yaml.load(file, Loader=yaml.SafeLoader)
+    cfg = AttrDict(data)['config']
+    return cfg
 
 
-class KWCocoDataset(VisslDatasetBase):
+class KWCocoDataset(QueueDataset):
     """
     Example:
-        import pkg_resources
-        import yaml
-        default_path = pkg_resources.resource_filename('vissl', 'config/defaults.yaml')
-        cfg = AttrDict(yaml.load(open(default_path, 'r')))['config']
-
+        cfg = demo_cfg()
         split = "TRAIN"
         cfg["DATA"][split].DATASET_NAMES = ['do-names-matter?']
         cfg["DATA"][split].DATASET_PATHS = ['special:shapes8']
-        cfg["DATA"][split].DATASET_SOURCES = ['kwcoco']
+        cfg["DATA"][split].DATA_SOURCES = ['kwcoco']
         from vissl.data import DATASET_SOURCE_MAP
         from vissl.data import DATA_SOURCES_WITH_SUBSET_SUPPORT
-
     """
-    def __init__(
-        self,
-        cfg: AttrDict,
-        split: str,
-        dataset_source_map: Dict[str, Callable],
-        data_sources_with_subset: Set[str],
-        **kwargs,
-    ):
-        pass
+    def __init__(self, cfg, data_source, path, split, dataset_name):
+        import kwcoco
+        self.cfg = cfg
+        self.split = split
+        self.dataset_name = dataset_name
+        self.data_source = data_source
+        self._path = path
+        self.is_initialized = False
+
+        self.dset = kwcoco.CocoDataset.coerce(path)
+
+        # Simple kwcoco dataset just loads entire images.
+        # In the future the ndsampler version should be able to handle
+        # windowed regions.
+
+        # Load a list of all images
+        self.image_ids = list(self.dset.index.imgs.keys())
+
+        # whether to use QueueDataset class to handle invalid images or not
+        self.enable_queue_dataset = cfg["DATA"][self.split]["ENABLE_QUEUE_DATASET"]
 
     def __len__(self):
         """
         Size of the dataset. Assumption made there is only one data source
         """
-        return self.num_samples(0)
+        return len(self.image_ids)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, index: int):
         """
-        Get the input sample for the minibatch for a specified data index.
-        For each data object (if we are loading several datasets in a minibatch),
-        we get the sample: consisting of {
-            - image data,
-            - label (if applicable) otherwise idx
-            - data_valid: 0 or 1 indicating if the data is valid image
-            - data_idx : index of the data in the dataset for book-keeping and debugging
-        }
-
-        Once the sample data is available, we apply the data transform on the sample.
-
-        The final transformed sample is returned to be added into the minibatch.
+        Ignore:
+            from vissl.data.kwcoco_dataset import *  # NOQA
+            cfg = demo_cfg()
+            self = KWCocoDataset(cfg, None, 'special:shapes8', 'TRAIN', None)
+            index = 0
+            img, is_success = self[index]
         """
+        gid = self.image_ids[index]
+        image_path = self.dset.get_image_fpath(gid)
 
-        if not self._labels_init and len(self.label_sources) > 0:
-            self._load_labels()
-            self._labels_init = True
+        is_success = True
 
-        subset_idx = idx
-        if self.data_limit >= 0 and self._can_random_subset_data_sources():
-            if not self._subset_initialized:
-                self._init_image_and_label_subset()
-            subset_idx = self.image_and_label_subset[idx]
+        try:
+            with PathManager.open(image_path, "rb") as fopen:
+                img = Image.open(fopen).convert("RGB")
 
-        # TODO: this doesn't yet handle the case where the length of datasets
-        # could be different.
-        item = {"data": [], "data_valid": [], "data_idx": []}
-        for data_source in self.data_objs:
-            data, valid = data_source[subset_idx]
-            item["data"].append(data)
-            item["data_idx"].append(idx)
-            item["data_valid"].append(1 if valid else -1)
+            if is_success and self.enable_queue_dataset:
+                self.on_sucess(img)
+        except Exception as e:
+            logging.warning(
+                f"Couldn't load: {image_path}. Exception: \n{e}"
+            )
+            is_success = False
+            # if we have queue dataset class enabled, we try to use it to get
+            # the seen valid images
+            if self.enable_queue_dataset:
+                img, is_success = self.on_failure()
+                if img is None:
+                    img = get_mean_image(
+                        self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE
+                    )
+            else:
+                img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
 
-        # There are three types of label_type (data labels): "standard",
-        # "sample_index", and "zero". "standard" uses the labels associated
-        # with a data set (e.g. directory names). "sample_index" assigns each
-        # sample a label that corresponds to that sample's index in the
-        # dataset (first sample will have label == 0, etc.), and is used for
-        # SSL tasks in which the label is arbitrary. "zero" assigns
-        # each sample the label == 0, which is necessary when using the
-        # CutMixUp collator because of the label smoothing that is built in
-        # to its functionality.
-        if (len(self.label_objs) > 0) or self.label_type == "standard":
-            item["label"] = []
-            for label_source in self.label_objs:
-                if isinstance(label_source, list):
-                    lbl = [entry[subset_idx] for entry in label_source]
-                else:
-                    lbl = _convert_lbl_to_long(label_source[subset_idx])
-                item["label"].append(lbl)
-        elif self.label_type == "sample_index":
-            item["label"] = []
-            for _ in range(len(self.data_objs)):
-                item["label"].append(idx)
-        elif self.label_type == "zero":
-            item["label"] = []
-            for _ in range(len(self.data_objs)):
-                item["label"].append(0)
-        else:
-            raise ValueError(f"Unknown label type: {self.label_type}")
-
-        # apply the transforms on the image
-        if self.transform:
-            item = self.transform(item)
-        return item
-
-    def num_samples(self, source_idx=0):
-        """
-        Size of the dataset. Assumption made there is only one data source
-        """
-        if self.data_limit >= 0:
-            return self.data_limit
-        return len(self.data_objs[source_idx])
-
-    def get_global_batchsize(self):
-        """
-        The global batch size across all the trainers
-        """
-        from classy_vision.generic.distributed_util import get_world_size
-        return self.get_batchsize_per_replica() * get_world_size()
-
-    def post_process_batch(self, batch_data):
-        """
-        Identity function. Other base datasets may need to #post_process_batch.
-        """
-        return batch_data
+        return img, is_success

@@ -256,6 +256,10 @@ def get_data_files(split, dataset_config):
     Once we have the dataset original paths, we replace the path with the local paths
     if the data was copied to local disk.
     """
+    print('split = {!r}'.format(split))
+    print(dataset_config[split].DATASET_NAMES)
+    print(dataset_config[split].DATA_SOURCES)
+    print(dataset_config[split].DATA_PATHS)
     assert len(dataset_config[split].DATASET_NAMES) == len(
         dataset_config[split].DATA_SOURCES
     ), "len(data_sources) != len(dataset_names)"
@@ -289,6 +293,7 @@ def get_data_files(split, dataset_config):
                 label_files.append(dataset_config[split].LABEL_PATHS[idx])
         else:
             label_data_info = VisslDatasetCatalog.get(data_names[idx])
+            print('label_data_info = {!r}'.format(label_data_info))
             if check_data_exists(label_data_info[data_split][1]):
                 label_files.append(label_data_info[data_split][1])
 

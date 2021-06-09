@@ -25,10 +25,8 @@ COCO_FPATH=/home/joncrall/.cache/kwcoco/demodata_bundles/shapes_8_tphzxqtzakcghy
 python \
     tools/run_distributed_engines.py \
     config=test/integration_test/quick_simclr.yaml \
-    config.DATA.TRAIN.DATA_SOURCES=[$COCO_FPATH]
-
-    config.DATA.TRAIN.DATASET_NAMES=[$COCO_FPATH]
-    config.DATA.TRAIN.DATA_SOURCES=[$COCO_FPATH]
+    config.DATA.TRAIN.DATASET_NAMES=[kwcoco]
+    config.DATA.TRAIN.DATA_SOURCES=[kwcoco]
     config.DATA.TRAIN.DATA_PATHS=[$COCO_FPATH]
 
     config.DATA.TRAIN.DATA_SOURCES=[synthetic] \

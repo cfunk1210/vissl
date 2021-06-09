@@ -66,6 +66,40 @@ class GenericSSLDataset(VisslDatasetBase):
                     }
         data_sources_with_subset (Set[str]): the set of datasets for which the subset
                     operation is supported inside GenericSSLDataset
+
+    CommandLine:
+        xdoctest -m /home/joncrall/code/vissl/vissl/data/ssl_dataset.py GenericSSLDataset
+
+    Example:
+        >>> from vissl.data.ssl_dataset import *  # NOQA
+        >>> from vissl.data.kwcoco_dataset import demo_cfg
+        >>> cfg = demo_cfg()
+        >>> split = "TRAIN"
+        >>> from vissl.data.dataset_catalog import VisslDatasetCatalog
+        >>> #
+        >>> # Currently vissl is unable to handle simple pointers to data manifests
+        >>> # on disk. It requires that datasets be pre-registered before they are
+        >>> # used. This seems like an anti-pattern based on research requirements
+        >>> # that makes the system difficult to use in both production and in
+        >>> # non-standard research. We will hack around it for now.
+        >>> #
+        >>> logging.basicConfig(level=logging.DEBUG)
+        >>> # Am I missing something, or is this over-engineered?
+        >>> VisslDatasetCatalog.register_data(
+        >>>     name="dataset_registration_seem_like_a_bad_idea",
+        >>>     data_dict={
+        >>>         "train": ['.', '.'],
+        >>>         "test": ['.', '.'],
+        >>>     }
+        >>> )
+        >>> cfg["DATA"][split].DATASET_NAMES = ['dataset_registration_seem_like_a_bad_idea']
+        >>> cfg["DATA"][split].DATA_PATHS = ['special:shapes8']
+        >>> cfg["DATA"][split].DATA_SOURCES = ['kwcoco']
+        >>> from vissl.data import DATASET_SOURCE_MAP
+        >>> from vissl.data import DATA_SOURCES_WITH_SUBSET_SUPPORT
+        >>> dataset_source_map = DATASET_SOURCE_MAP
+        >>> data_sources_with_subset = DATA_SOURCES_WITH_SUBSET_SUPPORT
+        >>> self = GenericSSLDataset(cfg, split, dataset_source_map, data_sources_with_subset)
     """
 
     def __init__(
@@ -86,6 +120,8 @@ class GenericSSLDataset(VisslDatasetBase):
         self.batchsize_per_replica = self.cfg["DATA"][split]["BATCHSIZE_PER_REPLICA"]
         self.data_sources = self.cfg["DATA"][split].DATA_SOURCES
         self.label_sources = self.cfg["DATA"][split].LABEL_SOURCES
+        print('self.data_sources = {!r}'.format(self.data_sources))
+        print('self.label_sources = {!r}'.format(self.label_sources))
         self.dataset_names = self.cfg["DATA"][split].DATASET_NAMES
         self.label_type = self.cfg["DATA"][split].LABEL_TYPE
         self.data_limit = self.cfg["DATA"][split].DATA_LIMIT
