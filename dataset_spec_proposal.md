@@ -236,6 +236,9 @@ reviewable PR, and I also think it might require some design forethought.
 For basic support of kwcoco, it is clear from the docs as to how I can make a
 kwcoco data source and how this can be registered as a data source.
 
+I'm currently working on a fork branch here: https://github.com/Erotemic/vissl
+to build a proof-of-concept.
+
 What is not clear is what the `dataset_catelog.json` is doing here and what
 roll it would play, if any at all. Currently, just to make the simclr example run
 on my data I added in a item:
