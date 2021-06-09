@@ -142,9 +142,9 @@ And the data manifest file (`my_train_bundle/data.kwcoco.json`) looks like this 
 ],
 "annotations": [
 
-    {"keypoints": [], "bbox": [234, 283, 162, 63], "area": 10206.0, "id": 1, "image_id": 1, "category_id": 3"segmentation": [...]},
+    {"keypoints": [], "bbox": [234, 283, 162, 63], "area": 10206.0, "id": 1, "image_id": 1, "category_id": 3", segmentation": [...]},
 
-    {"segmentation": [...], "keypoints": [{"xy": [344.175, 318.3], "keypoint_category_id": 3}, {"xy": [333.9, 363.7], "keypoint_category_id": 4}, {"xy": [308.475, 411.4], "keypoint_category_id": 5}], "bbox": [297, 307, 51, 109], "area": 5559.0, "id": 3, "image_id": 2, "category_id": 7},
+    {"keypoints": [{"xy": [344.175, 318.3], "keypoint_category_id": 3}, {"xy": [333.9, 363.7], "keypoint_category_id": 4}, {"xy": [308.475, 411.4], "keypoint_category_id": 5}], "bbox": [297, 307, 51, 109], "area": 5559.0, "id": 3, "image_id": 2, "category_id": 7, "segmentation": [...]},
 
     ...
 ]
