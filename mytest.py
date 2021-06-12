@@ -87,22 +87,30 @@ ls $HOME/code/vissl/configs/config
 tree --filelimit 10 $HOME/code/vissl/configs/config
 find $HOME/code/vissl/configs/config -iname "*cifar*"
 
+~/code/vissl/configs/config/
+
 python \
     $HOME/code/vissl/tools/run_distributed_engines.py \
-    config=benchmark/low_shot_transfer/cifar100/eval_resnet_8gpu_transfer_cifar100_low_tune.yaml \
-    config.CHECKPOINT.DIR="$HOME/work/vissl/cifar10_train" \
+    config=pretrain/moco/moco_1node_resnet.yaml \
+    config.VERBOSE=True \
+    config.LOG_FREQUENCY=1 \
+    config.CHECKPOINT.DIR="$HOME/work/vissl/cifar10" \
+    config.MACHINE.DEVICE=gpu \
     config.DISTRIBUTED.NUM_NODES=1 \
     config.DISTRIBUTED.NUM_PROC_PER_NODE=1 \
-    config.MACHINE.DEVICE=gpu \
-    confie.DATA.NUM_DATALOADER_WORKERS=0 \
-    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=3 \
-    config.DATA.TEST.BATCHSIZE_PER_REPLICA=3 \
+    config.DATA.NUM_DATALOADER_WORKERS=1 \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=4 \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA=4 \
     config.DATA.TRAIN.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
     config.DATA.TEST.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
     config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
     config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
     config.DATA.TEST.DATA_SOURCES=[kwcoco] \
     config.DATA.TEST.DATASET_NAMES=[kwcoco]
+
+
+    config.DISTRIBUTED.NUM_PROC_PER_NODE=0 \
+    config=benchmark/low_shot_transfer/cifar100/eval_resnet_8gpu_transfer_cifar100_low_tune.yaml \
 
 
 

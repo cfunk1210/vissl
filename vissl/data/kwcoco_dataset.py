@@ -105,4 +105,13 @@ class KWCocoDataset(Dataset):
                 else:
                     img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
 
-        return img, is_success
+        import numpy as np
+        import torch
+        hwc = np.asarray(img.convert("RGB"))
+        chw = torch.from_numpy(hwc.transpose(2, 0, 1)).float()
+        print('chw.shape = {!r}'.format(chw.shape))
+        print('is_success = {!r}'.format(is_success))
+        # is_success = torch.from_numpy(is_success)
+        # is_success = torch.from_numpy(np.array([is_success]).astype(np.int64)).long()
+        # return chw, is_success
+        return chw, is_success
