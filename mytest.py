@@ -13,20 +13,35 @@ cd $HOME/code/apex
 pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
 
-cd $HOME/code/vissl
 
-python tools/run_distributed_engines.py --help
-
-See:
+Relevant files:
     ~/code/vissl/vissl/config/defaults.yaml
     ~/code/vissl/configs/config/test/integration_test/quick_simclr.yaml
     ~/code/vissl/configs/config/dataset_catalog.json
     ~/code/vissl/vissl/data/kwcoco_dataset.py
 
+    ~/code/kwcoco/kwcoco/data/grab_cifar.py
 
-kwcoco toydata shapes512
 
-COCO_FPATH=/home/joncrall/.cache/kwcoco/demodata_bundles/shapes_512_jsskkpoafycsnj/data.kwcoco.json
+cd $HOME/code/vissl
+
+python tools/run_distributed_engines.py --help
+
+
+python -m kwcoco.data.grab_voc
+python -m kwcoco.data.grab_cifar
+
+kwcoco grab --cifar10=True
+kwcoco stats $HOME/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json
+kwcoco split \
+    --src $HOME/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json \
+    --dst1 $HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json \
+    --dst2 $HOME/.cache/kwcoco/data/cifar10/cifar10-split2.kwcoco.json \
+    --rng 11719619003825326796890461364078 \
+    --factor 3
+
+$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json
+$HOME/.cache/kwcoco/data/cifar10/cifar10-split2.kwcoco.json
 
 python \
     tools/run_distributed_engines.py \
@@ -38,6 +53,39 @@ python \
     config.DATA.TEST.DATA_SOURCES=[kwcoco] \
     config.DATA.TEST.DATA_PATHS=[$COCO_FPATH] \
     config.DATA.TEST.DATASET_NAMES=[kwcoco] \
+
+
+
+kwcoco toydata shapes512
+
+$HOME/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json
+$HOME/.cache/kwcoco/data/cifar100/cifar100.kwcoco.json
+
+kwcoco stats /home/joncrall/.cache/kwcoco/data/cifar100/cifar100.kwcoco.json
+kwcoco stats /home/joncrall/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json
+
+COCO_FPATH=/home/joncrall/.cache/kwcoco/demodata_bundles/shapes_512_jsskkpoafycsnj/data.kwcoco.json
+
+
+# I wish we could pass a path to config=
+
+ls $HOME/code/vissl/configs/config
+tree --filelimit 10 $HOME/code/vissl/configs/config
+find $HOME/code/vissl/configs/config -iname "*cifar*"
+
+python \
+    $HOME/code/vissl/tools/run_distributed_engines.py \
+    config=benchmark/low_shot_transfer/cifar100/eval_resnet_8gpu_transfer_cifar100_low_tune.yaml \
+    config.CHECKPOINT.DIR="$HOME/work/vissl/cifar10_train" \
+    config.NUM_DATALOADER_WORKERS = 0 \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA = 3 \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA = 3 \
+    config.DATA.TRAIN.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
+    config.DATA.TEST.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
+    config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
+    config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
+    config.DATA.TEST.DATA_SOURCES=[kwcoco] \
+    config.DATA.TEST.DATASET_NAMES=[kwcoco]
 
 
     config.DATA.TRAIN.DATA_SOURCES=[synthetic] \
