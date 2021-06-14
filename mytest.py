@@ -22,6 +22,7 @@ Relevant files
 ==============
 ~/code/vissl/vissl/config/defaults.yaml
 ~/code/vissl/configs/config/test/integration_test/quick_simclr.yaml
+~/code/vissl/configs/config/pretrain/simclr/simclr_8node_resnet.yaml
 ~/code/vissl/configs/config/dataset_catalog.json
 ~/code/vissl/vissl/data/kwcoco_dataset.py
 
@@ -34,7 +35,7 @@ Demo CIFAR
 python -m kwcoco.data.grab_voc
 python -m kwcoco.data.grab_cifar
 
-kwcoco grab --cifar10=True
+kwcoco grab cifar10
 kwcoco stats $HOME/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json
 kwcoco split \
     --src $HOME/.cache/kwcoco/data/cifar10/cifar10.kwcoco.json \
@@ -43,22 +44,52 @@ kwcoco split \
     --rng 11719619003825326796890461364078 \
     --factor 3
 
-kwcoco stats $HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json
-kwcoco stats $HOME/.cache/kwcoco/data/cifar10/cifar10-split2.kwcoco.json
+kwcoco stats \
+    $HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json \
+    $HOME/.cache/kwcoco/data/cifar10/cifar10-split2.kwcoco.json
 
 
 # TODO: this should be available via python -m vissl.__main__
 python \
     $HOME/code/vissl/tools/run_distributed_engines.py \
-    config=test/integration_test/quick_simclr.yaml \
-    config.CHECKPOINT.DIR="./my_toy_training_v2" \
+    config=pretrain/simclr/simclr_8node_resnet.yaml \
+    config.DISTRIBUTED.NUM_PROC_PER_NODE=1 \
+    config.DISTRIBUTED.NUM_NODES=1 \
+    config.DISTRIBUTED.RUN_ID=auto \
+    config.CHECKPOINT.DIR="./my_cifar_training_v3" \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA=32 \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=32 \
     config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
     config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
     config.DATA.TEST.DATA_SOURCES=[kwcoco] \
     config.DATA.TEST.DATASET_NAMES=[kwcoco] \
     config.DATA.TRAIN.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
-    config.DATA.TEST.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json] \
+    config.DATA.TEST.DATA_PATHS=[$HOME/.cache/kwcoco/data/cifar10/cifar10-split1.kwcoco.json]
 
+Demo ToyData
+============
+
+
+kwcoco toydata --key=shapes256 --bundle_dpath=./my_toy_bundle_shapes256
+kwcoco toydata --key=shapes32 --bundle_dpath=./my_toy_bundle_shapes32
+
+
+# TODO: this should be available via python -m vissl.__main__
+python \
+    $HOME/code/vissl/tools/run_distributed_engines.py \
+    config=pretrain/simclr/simclr_8node_resnet.yaml \
+    config.DISTRIBUTED.NUM_PROC_PER_NODE=1 \
+    config.DISTRIBUTED.NUM_NODES=1 \
+    config.DISTRIBUTED.RUN_ID=auto \
+    config.CHECKPOINT.DIR="./my_toydata_training_v3" \
+    config.DATA.TEST.BATCHSIZE_PER_REPLICA=32 \
+    config.DATA.TRAIN.BATCHSIZE_PER_REPLICA=32 \
+    config.DATA.TRAIN.DATA_SOURCES=[kwcoco] \
+    config.DATA.TRAIN.DATASET_NAMES=[kwcoco] \
+    config.DATA.TEST.DATA_SOURCES=[kwcoco] \
+    config.DATA.TEST.DATASET_NAMES=[kwcoco] \
+    config.DATA.TRAIN.DATA_PATHS=[./my_toy_bundle_shapes256/data.kwcoco.json] \
+    config.DATA.TEST.DATA_PATHS=[./my_toy_bundle_shapes32/data.kwcoco.json]
 
 
 Debug Stuff

@@ -70,25 +70,25 @@ class KWCocoDataset(Dataset):
             cfg = demo_cfg()
             self = KWCocoDataset(cfg, None, 'special:shapes8', 'TRAIN', None)
             index = 0
-            img, is_success = self[index]
+            pil_img, is_success = self[index]
         """
-        print(len(self))
-        print('GETITEM: index = {!r}'.format(index))
+        # print(len(self))
+        # print('GETITEM: index = {!r}'.format(index))
         gid = self.image_ids[index]
         image_path = self.dset.get_image_fpath(gid)
 
         is_success = True
 
         with PathManager.open(image_path, "rb") as fopen:
-            img = Image.open(fopen).convert("RGB")
+            pil_img = Image.open(fopen).convert("RGB")
 
         if 0:
             try:
                 with PathManager.open(image_path, "rb") as fopen:
-                    img = Image.open(fopen).convert("RGB")
+                    pil_img = Image.open(fopen).convert("RGB")
 
                 if is_success and self.enable_queue_dataset:
-                    self.on_sucess(img)
+                    self.on_sucess(pil_img)
             except Exception as e:
                 logging.warning(
                     f"Couldn't load: {image_path}. Exception: \n{e}"
@@ -97,21 +97,22 @@ class KWCocoDataset(Dataset):
                 # if we have queue dataset class enabled, we try to use it to get
                 # the seen valid images
                 if self.enable_queue_dataset:
-                    img, is_success = self.on_failure()
-                    if img is None:
-                        img = get_mean_image(
+                    pil_img, is_success = self.on_failure()
+                    if pil_img is None:
+                        pil_img = get_mean_image(
                             self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE
                         )
                 else:
-                    img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
+                    pil_img = get_mean_image(self.cfg["DATA"][self.split].DEFAULT_GRAY_IMG_SIZE)
 
-        import numpy as np
-        import torch
-        hwc = np.asarray(img.convert("RGB"))
-        chw = torch.from_numpy(hwc.transpose(2, 0, 1)).float()
-        print('chw.shape = {!r}'.format(chw.shape))
-        print('is_success = {!r}'.format(is_success))
-        # is_success = torch.from_numpy(is_success)
-        # is_success = torch.from_numpy(np.array([is_success]).astype(np.int64)).long()
-        # return chw, is_success
-        return chw, is_success
+        if 0:
+            import numpy as np
+            import torch
+            hwc = np.asarray(pil_img.convert("RGB"))
+            chw = torch.from_numpy(hwc.transpose(2, 0, 1)).float()
+            print('chw.shape = {!r}'.format(chw.shape))
+            print('is_success = {!r}'.format(is_success))
+            # is_success = torch.from_numpy(is_success)
+            # is_success = torch.from_numpy(np.array([is_success]).astype(np.int64)).long()
+            return chw, is_success
+        return pil_img, is_success
