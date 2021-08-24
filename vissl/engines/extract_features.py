@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import os
 
 from vissl.config import AttrDict
 from vissl.trainer import SelfSupervisionTrainer
@@ -42,6 +43,8 @@ def extract_main(
     setup_logging(__name__)
     # setup the environment variables
     set_env_vars(local_rank, node_id, cfg)
+    dist_rank = int(os.environ["RANK"])
+
 
     # setup the multiprocessing to be forkserver.
     # See https://fb.quip.com/CphdAGUaM5Wf
@@ -49,7 +52,7 @@ def extract_main(
 
     # set seeds
     logging.info("Setting seed....")
-    set_seeds(cfg)
+    set_seeds(cfg, dist_rank)
 
     # print the training settings and system settings
     local_rank, _ = get_machine_local_and_dist_rank()

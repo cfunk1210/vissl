@@ -278,7 +278,7 @@ class GenericSSLDataset(VisslDatasetBase):
                 # We do not create it again since it can be an expensive operation.
                 labels = [x[1] for x in self.data_objs[idx].image_dataset.samples]
                 labels = np.array(labels).astype(np.int64)
-            elif label_source == "torchvision_dataset":
+            elif label_source in ["torchvision_dataset", "kwcoco"]:
                 labels = np.array(self.data_objs[idx].get_labels()).astype(np.int64)
             elif label_source == "synthetic":
                 labels = np.array([0 for _ in range(len(self.data_objs[idx]))])

@@ -116,3 +116,26 @@ class KWCocoDataset(Dataset):
             # is_success = torch.from_numpy(np.array([is_success]).astype(np.int64)).long()
             return chw, is_success
         return pil_img, is_success
+
+    def get_labels(self):
+        """  Be able to return labels when necessary.  
+
+
+        Ignore:
+            from vissl.data.kwcoco_dataset import *  # NOQA
+            cfg = demo_cfg()
+            self = KWCocoDataset(cfg, None, 'special:shapes8', 'TRAIN', None)
+            self.get_labels()
+            pil_img, is_success = self[index]
+        """
+        self.labels = list()
+        for gid in sorted(self.image_ids):
+            aids = list(self.dset.cid_to_aids[gid])
+            if len(aids) == 0:
+                raise ValueError(f'Every image needs an id if get_labels is being called.  Image Id {gid} has no labels')
+                # logging.warning(f'Image Id {gid} has no label.  Setting it to 0.')
+                self.labels.append(0)
+            elif len(aids) > 1: 
+                logging.warning(f'Image Id {gid} has more than one label.  Only using the first label.')
+            self.labels.append(self.dset.anns[aids[0]]['category_id'])
+        return self.labels
